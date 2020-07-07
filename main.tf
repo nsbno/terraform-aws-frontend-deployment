@@ -23,7 +23,7 @@ resource "aws_iam_role" "cross_account" {
 
 resource "aws_iam_role_policy" "s3_to_cross_account" {
   count  = length(local.frontend_deployment_payload.s3_source_target_pairs) > 0 ? 1 : 0
-  policy = data.aws_iam_policy_document.s3_for_cross_account[0].json
+  policy = data.aws_iam_policy_document.s3_for_cross_account.json
   role   = aws_iam_role.cross_account.id
 }
 

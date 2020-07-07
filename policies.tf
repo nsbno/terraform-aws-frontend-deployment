@@ -11,7 +11,6 @@ data "aws_iam_policy_document" "cross_account_lambda_assume" {
 }
 
 data "aws_iam_policy_document" "s3_for_cross_account" {
-  count = length(local.frontend_deployment_payload.s3_source_target_pairs) > 0 ? 1 : 0
   statement {
     effect    = "Allow"
     actions   = ["s3:ListAllMyBuckets"]
