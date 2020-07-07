@@ -20,13 +20,13 @@ data "aws_iam_policy_document" "s3_for_cross_account" {
   statement {
     effect    = "Allow"
     actions   = ["s3:ListBucket"]
-    resources = formatlist("arn:aws:s3:::%s", [for pair in local.frontend_deployment_payload.s3_source_target_pairs : pair["s3_target_bucket"]])
+    resources = formatlist("arn:aws:s3:::%s", [for pair in local.frontend_deployment_payload.s3_source_target_pairs : pair.s3_target_bucket])
   }
 
   statement {
     effect    = "Allow"
     actions   = ["s3:Get*", "s3:Delete*", "s3:Put*"]
-    resources = formatlist("arn:aws:s3:::%s/*", [for pair in local.frontend_deployment_payload.s3_source_target_pairs : pair["s3_target_bucket"]])
+    resources = formatlist("arn:aws:s3:::%s/*", [for pair in local.frontend_deployment_payload.s3_source_target_pairs : pair.s3_target_bucket])
   }
   /*
   * NOTE: Without this dependency, the policy document will not be updated the first time
