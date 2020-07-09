@@ -11,6 +11,7 @@ locals {
   }
 }
 
+
 ##################################
 #                                #
 # Cross-account role             #
@@ -23,7 +24,7 @@ resource "aws_iam_role" "cross_account" {
 
 resource "aws_iam_role_policy" "s3_to_cross_account" {
   count  = length(local.frontend_deployment_payload.s3_source_target_pairs) > 0 ? 1 : 0
-  policy = data.aws_iam_policy_document.s3_for_cross_account[0].json
+  policy = data.aws_iam_policy_document.s3_for_cross_account.json
   role   = aws_iam_role.cross_account.id
 }
 
@@ -34,13 +35,13 @@ resource "aws_iam_role_policy" "s3_to_cross_account" {
 #                                #
 ##################################
 resource "null_resource" "frontend_deployment" {
-  for_each = { for pair in local.frontend_deployment_payload.s3_source_target_pairs : pair.s3_target_bucket => pair }
+  count = length(local.frontend_deployment_payload.s3_source_target_pairs)
   triggers = {
-    payload = sha256(jsonencode(each.value))
+    payload = sha256(jsonencode(local.frontend_deployment_payload.s3_source_target_pairs[count.index]))
   }
   provisioner "local-exec" {
     interpreter = ["/usr/bin/env", "sh", "-c"]
-    command     = "test \"$(aws sts get-caller-identity --query 'Account' --output text)\" = \"${local.current_account_id}\" && aws lambda invoke --function-name ${local.function_name} --payload '${jsonencode(merge(local.frontend_deployment_payload, { s3_source_target_pairs = [each.value] }))}' out.json > response.json && cat response.json | if grep -q FunctionError; then cat response.json out.json && exit 1; fi"
+    command     = "test \"$(aws sts get-caller-identity --query 'Account' --output text)\" = \"${local.current_account_id}\" && aws lambda invoke --function-name ${local.function_name} --payload '${jsonencode(merge(local.frontend_deployment_payload, { s3_source_target_pairs = [local.frontend_deployment_payload.s3_source_target_pairs[count.index]] }))}' out.json > response.json && cat response.json | if grep -q FunctionError; then cat response.json out.json && exit 1; fi"
   }
-  depends_on = [aws_iam_role.cross_account, aws_iam_role_policy.s3_to_cross_account]
+  depends_on = [aws_iam_role_policy.s3_to_cross_account]
 }
