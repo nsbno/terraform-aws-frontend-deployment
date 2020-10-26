@@ -1,7 +1,9 @@
 data "aws_caller_identity" "current-account" {}
+data "aws_region" "current" {}
 
 locals {
-  function_name = var.lambda_alias_prefix == "" ? "${var.lambda_owner}:function:${var.lambda_name}" : "${var.lambda_owner}:function:${var.lambda_name}:${var.lambda_alias_prefix}${local.current_account_id}"
+  current_region = data.aws_region.current.name
+  function_name  = var.lambda_alias_prefix == "" ? "arn:aws:lambda:${local.current_region}:${var.lambda_owner}:function:${var.lambda_name}" : "arn:aws:lambda:${local.current_region}:${var.lambda_owner}:function:${var.lambda_name}:${var.lambda_alias_prefix}${local.current_account_id}"
 
   current_account_id = data.aws_caller_identity.current-account.account_id
   frontend_deployment_payload = {
