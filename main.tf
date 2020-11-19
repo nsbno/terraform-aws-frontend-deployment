@@ -41,7 +41,19 @@ resource "null_resource" "frontend_deployment" {
   }
   provisioner "local-exec" {
     interpreter = ["/usr/bin/env", "sh", "-c"]
-    command     = "test \"$(aws sts get-caller-identity --query 'Account' --output text)\" = \"${local.current_account_id}\" && aws lambda invoke --function-name ${local.function_name} --payload '${jsonencode(merge(local.frontend_deployment_payload, { s3_source_target_pairs = [local.frontend_deployment_payload.s3_source_target_pairs[count.index]] }))}' out.json > response.json && cat response.json | if grep -q FunctionError; then cat response.json out.json && exit 1; fi"
+    command     = <<EOF
+test "$(aws sts get-caller-identity --query 'Account' --output text)" = "${local.current_account_id}" && \
+if aws --version | grep -q '^aws-cli/2'; then
+  aws lambda invoke \
+    --function-name ${local.function_name} \
+    --cli-binary-format raw-in-base64-out \
+    --payload '${jsonencode(merge(local.frontend_deployment_payload, { s3_source_target_pairs = [local.frontend_deployment_payload.s3_source_target_pairs[count.index]] }))}' out.json > response.json && cat response.json | if grep -q FunctionError; then cat response.json out.json && exit 1; fi
+else
+  aws lambda invoke \
+    --function-name ${local.function_name} \
+    --payload '${jsonencode(merge(local.frontend_deployment_payload, { s3_source_target_pairs = [local.frontend_deployment_payload.s3_source_target_pairs[count.index]] }))}' out.json > response.json && cat response.json | if grep -q FunctionError; then cat response.json out.json && exit 1; fi
+fi
+EOF
   }
   depends_on = [aws_iam_role_policy.s3_to_cross_account]
 }
